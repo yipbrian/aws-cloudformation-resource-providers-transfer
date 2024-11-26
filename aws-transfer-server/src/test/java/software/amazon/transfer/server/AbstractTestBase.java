@@ -151,6 +151,7 @@ public class AbstractTestBase {
 
     protected static DescribeServerResponse describeServerFromModel(
             String serverId, String state, ResourceModel model) {
+        model.setState(state);
         return DescribeServerResponse.builder()
                 .server(DescribedServer.builder()
                         .arn(getTestServerArn(serverId))
@@ -193,6 +194,7 @@ public class AbstractTestBase {
                 .identityProviderType(DEFAULT_IDENTITY_PROVIDER_TYPE)
                 .securityPolicyName(DEFAULT_SECURITY_POLICY)
                 .protocols(DEFAULT_PROTOCOLS)
+                .state(software.amazon.awssdk.services.transfer.model.State.ONLINE.name())
                 .structuredLogDestinations(Collections.emptyList())
                 .tags(Collections.emptyList())
                 .build();
@@ -240,6 +242,7 @@ public class AbstractTestBase {
                 .securityPolicyName(DEFAULT_SECURITY_POLICY)
                 .protocols(DEFAULT_PROTOCOLS)
                 .tags(MODEL_TAGS)
+                .state(software.amazon.awssdk.services.transfer.model.State.ONLINE.name())
                 .structuredLogDestinations(Collections.singletonList("FooLog"))
                 .loggingRole("loggingRole")
                 .preAuthenticationLoginBanner("pre")

@@ -70,6 +70,7 @@ public class ReadHandler extends BaseHandlerStd {
                 .protocols(server.protocolsAsStrings())
                 .protocolDetails(ProtocolDetailsTranslator.fromSdk(server.protocolDetails()))
                 .securityPolicyName(server.securityPolicyName())
+                .state(server.stateAsString())
                 .tags(translateFromSdkTags(server.tags()))
                 .workflowDetails(WorkflowDetailsTranslator.fromSdk(server.workflowDetails()))
                 .structuredLogDestinations(server.structuredLogDestinations())

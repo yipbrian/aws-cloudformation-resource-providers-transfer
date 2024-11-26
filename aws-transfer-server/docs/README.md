@@ -236,3 +236,7 @@ The list of egress IP addresses of this server. These IP addresses are only rele
 
 Returns the <code>ServerId</code> value.
 
+#### State
+
+Returns the <code>State</code> value.
+

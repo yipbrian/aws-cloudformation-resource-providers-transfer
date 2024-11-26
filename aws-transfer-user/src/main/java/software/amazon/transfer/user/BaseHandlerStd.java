@@ -51,6 +51,8 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
     private static final String FAILURE_LOG_MESSAGE =
             "[ClientRequestToken: %s] Resource %s failed in %s operation, Error: %s%n";
     private static final String THROTTLING_EXCEPTION_ERR_CODE = "ThrottlingException";
+    private static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
+
     protected Logger logger;
 
     @Override
@@ -334,8 +336,13 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         return client.injectCredentialsAndInvokeV2(tagRequest, transferClient::tagResource);
                     }
                 })
-                .handleError((ignored, exception, proxyClient, model, context) ->
-                        handleError(UPDATE, exception, model, context, clientRequestToken))
+                .handleError((ignored, exception, proxyClient, model, context) -> {
+                    if (isEnvironmentTaggingException(exception)) {
+                        return ProgressEvent.failed(
+                                model, context, HandlerErrorCode.UnauthorizedTaggingOperation, exception.getMessage());
+                    }
+                    return handleError(UPDATE, exception, model, context, clientRequestToken);
+                })
                 .progress();
     }
 
@@ -378,9 +385,18 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
                         return client.injectCredentialsAndInvokeV2(untagRequest, transferClient::untagResource);
                     }
                 })
-                .handleError((ignored, exception, proxyClient, model, context) ->
-                        handleError(UPDATE, exception, model, context, clientRequestToken))
+                .handleError((ignored, exception, proxyClient, model, context) -> {
+                    if (isEnvironmentTaggingException(exception)) {
+                        return ProgressEvent.failed(
+                                model, context, HandlerErrorCode.UnauthorizedTaggingOperation, exception.getMessage());
+                    }
+                    return handleError(UPDATE, exception, model, context, clientRequestToken);
+                })
                 .progress();
+    }
+
+    private boolean isEnvironmentTaggingException(Exception e) {
+        return StringUtils.equals(ACCESS_DENIED_ERROR_CODE, getErrorCode(e));
     }
 
     protected DescribeUserRequest translateToReadRequest(final ResourceModel model) {

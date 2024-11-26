@@ -29,6 +29,7 @@ import software.amazon.awssdk.services.transfer.model.UpdateServerRequest;
 import software.amazon.awssdk.services.transfer.model.UpdateServerResponse;
 import software.amazon.awssdk.utils.CollectionUtils;
 import software.amazon.cloudformation.proxy.AmazonWebServicesClientProxy;
+import software.amazon.cloudformation.proxy.HandlerErrorCode;
 import software.amazon.cloudformation.proxy.Logger;
 import software.amazon.cloudformation.proxy.ProgressEvent;
 import software.amazon.cloudformation.proxy.ProxyClient;
@@ -42,6 +43,8 @@ import software.amazon.transfer.server.translators.Translator;
 import software.amazon.transfer.server.translators.WorkflowDetailsTranslator;
 
 public class UpdateHandler extends BaseHandlerStd {
+
+    private static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
 
     protected ProgressEvent<ResourceModel, CallbackContext> handleRequest(
             final AmazonWebServicesClientProxy proxy,
@@ -395,8 +398,13 @@ public class UpdateHandler extends BaseHandlerStd {
                         return client.injectCredentialsAndInvokeV2(tagRequest, transferClient::tagResource);
                     }
                 })
-                .handleError((ignored, exception, proxyClient, model, context) ->
-                        handleError(UPDATE, exception, model, context, clientRequestToken))
+                .handleError((ignored, exception, proxyClient, model, context) -> {
+                    if (isEnvironmentTaggingException(exception)) {
+                        return ProgressEvent.failed(
+                                model, context, HandlerErrorCode.UnauthorizedTaggingOperation, exception.getMessage());
+                    }
+                    return handleError(UPDATE, exception, model, context, clientRequestToken);
+                })
                 .progress();
     }
 
@@ -439,8 +447,17 @@ public class UpdateHandler extends BaseHandlerStd {
                         return client.injectCredentialsAndInvokeV2(untagRequest, transferClient::untagResource);
                     }
                 })
-                .handleError((ignored, exception, proxyClient, model, context) ->
-                        handleError(UPDATE, exception, model, context, clientRequestToken))
+                .handleError((ignored, exception, proxyClient, model, context) -> {
+                    if (isEnvironmentTaggingException(exception)) {
+                        return ProgressEvent.failed(
+                                model, context, HandlerErrorCode.UnauthorizedTaggingOperation, exception.getMessage());
+                    }
+                    return handleError(UPDATE, exception, model, context, clientRequestToken);
+                })
                 .progress();
+    }
+
+    private boolean isEnvironmentTaggingException(Exception e) {
+        return StringUtils.equals(ACCESS_DENIED_ERROR_CODE, getErrorCode(e));
     }
 }

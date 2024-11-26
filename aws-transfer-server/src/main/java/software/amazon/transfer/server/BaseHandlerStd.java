@@ -232,7 +232,7 @@ public abstract class BaseHandlerStd extends BaseHandler<CallbackContext> {
         return THROTTLE_CALLBACK_DELAY_SECONDS;
     }
 
-    private String getErrorCode(Exception e) {
+    protected String getErrorCode(Exception e) {
         if (e instanceof AwsServiceException && ((AwsServiceException) e).awsErrorDetails() != null) {
             return ((AwsServiceException) e).awsErrorDetails().errorCode();
         }

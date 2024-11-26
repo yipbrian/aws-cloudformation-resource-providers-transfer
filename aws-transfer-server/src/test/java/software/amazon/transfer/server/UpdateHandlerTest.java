@@ -27,6 +27,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Stubber;
 
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.transfer.model.DescribeServerRequest;
 import software.amazon.awssdk.services.transfer.model.DescribeServerResponse;
 import software.amazon.awssdk.services.transfer.model.EndpointType;
@@ -71,6 +73,45 @@ public class UpdateHandlerTest extends AbstractTestBase {
         assertThat(response.getResourceModel()).isEqualTo(model);
 
         verify(sdkClient, atLeastOnce()).updateServer(any(UpdateServerRequest.class));
+    }
+
+    @Test
+    public void handleRequest_SimpleUpdate_Tagging_Failed() {
+        ResourceModel model = setupSimpleServerModel(DEFAULT_ENDPOINT_TYPE);
+        setServerId(model, "testServer");
+        ResourceModel newModel = setupSimpleServerModel(DEFAULT_ENDPOINT_TYPE);
+        setServerId(newModel, "testServer");
+        newModel.setTags(Translator.translateTagMapToTagList(EXTRA_MODEL_TAGS));
+
+        ResourceHandlerRequest<ResourceModel> request = getResourceHandlerRequestBuilder()
+                .previousResourceState(model)
+                .desiredResourceState(newModel)
+                .desiredResourceTags(EXTRA_MODEL_TAGS)
+                .build();
+
+        AwsServiceException ex = AwsServiceException.builder()
+                .awsErrorDetails(
+                        AwsErrorDetails.builder().errorCode("AccessDenied").build())
+                .build();
+        doThrow(ex).when(sdkClient).tagResource(any(TagResourceRequest.class));
+
+        updateServerAndAssertStatus(request, "ONLINE", OperationStatus.FAILED);
+
+        verify(sdkClient, atLeastOnce()).updateServer(any(UpdateServerRequest.class));
+        verify(sdkClient, atLeastOnce()).tagResource(any(TagResourceRequest.class));
+
+        // Do untag now
+        request = getResourceHandlerRequestBuilder()
+                .previousResourceState(newModel)
+                .desiredResourceState(model)
+                .previousResourceTags(EXTRA_MODEL_TAGS)
+                .build();
+        doThrow(ex).when(sdkClient).untagResource(any(UntagResourceRequest.class));
+
+        updateServerAndAssertStatus(request, "ONLINE", OperationStatus.FAILED);
+
+        verify(sdkClient, atLeastOnce()).updateServer(any(UpdateServerRequest.class));
+        verify(sdkClient, atLeastOnce()).untagResource(any(UntagResourceRequest.class));
     }
 
     private static void setServerId(ResourceModel model, String serverId) {
