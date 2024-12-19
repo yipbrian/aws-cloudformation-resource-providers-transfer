@@ -29,7 +29,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cfn.generate.args/>
 	<!-- Keep all module versions here -->
-	<awssdk.version>2.26.12</awssdk.version>
+	<awssdk.version>2.31.17</awssdk.version>
 	<log4j.version>2.23.1</log4j.version>
 	<lombok.version>1.18.34</lombok.version>
 	<assertj.version>3.26.0</assertj.version>
